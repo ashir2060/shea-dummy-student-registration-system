@@ -33,6 +33,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 //import setValue
 import androidx.compose.runtime.setValue
+//import material3.Button runtime.rememberCoroutineScope ui.platform.LocalContext launch
+import androidx.compose.material3.Button
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.platform.LocalContext
+import kotlinx.coroutines.launch
+
+//import AppDatabase StudentEntity
+import com.example.myapp.ui.theme.AppDatabase
+import com.example.myapp.ui.theme.StudentEntity
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -40,16 +49,50 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             MyAppTheme {
+                val context = LocalContext.current
+                val db = remember { AppDatabase.getDatabase(context) }
+                val scope = rememberCoroutineScope() //scope
+                val dao = remember {db.studentDao()} //dao
+
+                var studentName by remember { mutableStateOf("") }
+                var studentId by remember {mutableStateOf("") }
+                var status by remember { mutableStateOf("") }
+
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     Column(
                         modifier = Modifier.padding(innerPadding)
                     ) {
-                        Student_Name_Ask()
+                        Student_Name_Ask(
+                            value = studentName,
+                            onValueChange = { studentName = it }
+                        )
 
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        Student_ID_Ask() //i just wrote this to try commit
+                        Student_ID_Ask(
+                            value = studentId,
+                            onValueChange = { studentId = it}
+                        )
                     }
+                    Button(onClick = {
+                        scope.launch {
+                            if(studentName.isBlank() || studentId.isBlank()) {
+                                status = "Please enter both fields"
+                            } else {
+                                dao.insertStudent(
+                                    StudentEntity( studentName = studentName, studentId = studentId )
+                                )
+                                status = "Saved"
+                                studentName = ""
+                                studentId = ""
+                            }
+                        }
+                    }) {
+                        Text("Save")
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(status)
                 }
             }
         }
@@ -57,17 +100,19 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun Student_Name_Ask(modifier: Modifier = Modifier) {
+fun Student_Name_Ask(
+    value: String,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
     Text(
         text = "Student Name",
         modifier = modifier
     )
-    var text by remember { mutableStateOf("") }
+
     TextField(
-        value = text,
-        onValueChange = { newText ->
-            text = newText // android studio ide thinks text is never used because by default there's a variable-kind-of thing setup like value="" in the android studio
-        },
+        value = value,
+        onValueChange = onValueChange,
         placeholder = {
             Text("Enter Student Name")
         },
@@ -79,23 +124,25 @@ fun Student_Name_Ask(modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun Student_ID_Ask(modifier: Modifier = Modifier){
+fun Student_ID_Ask(
+    value: String,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier
+){
     Text(
         text = "Student ID",
         modifier = modifier
     )
-    var text by remember { mutableStateOf("") }
+
     TextField(
-        value = text,
-        onValueChange = { newText ->
-            text = newText
-        },
+        value = value,
+        onValueChange = onValueChange,
         placeholder = {
-            Text("Enter student ID")
+            Text("Enter Student ID")
         },
         modifier = Modifier
-                    .offset(x = 10.dp,y = 0.dp)
-                    .width(200.dp)
-                    .height(50.dp)
+            .offset(x = 10.dp, y = 0.dp)
+            .width(200.dp)
+            .height(50.dp)
     )
 }
